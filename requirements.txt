@@ -1,0 +1,14 @@
+apache-airflow==2.8.1
+kafka-python==2.0.2
+pandas==2.2.0
+pyarrow==15.0.0
+fastapi==0.109.0
+uvicorn==0.27.0
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+requests==2.31.0
+pydantic==2.6.0
+openmeteo-requests==1.2.0
+requests-cache==1.1.1
+retry_requests==6.0
