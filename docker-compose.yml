@@ -46,7 +46,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./sql:/docker-entrypoint-initdb.d # Updated to mount whole sql dir
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "airflow" ]
       interval: 10s
@@ -67,6 +67,42 @@ services:
       - DATA_DIR=/data/bronze
     volumes:
       - ./data:/data
+
+  # ----------------------------------------
+  # MLflow Tracking Server
+  # ----------------------------------------
+  mlflow-server:
+    build: .
+    container_name: mlflow-server
+    command: >
+      bash -c "pip install mlflow &&  mlflow ui  --backend-store-uri sqlite:////mlflow/mlflow.db  --default-artifact-root /mlflow/artifacts  --host 0.0.0.0  --port 5000"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlflow:/mlflow
+
+  # ----------------------------------------
+  # ML API Service (FastAPI)
+  # ----------------------------------------
+  ml-api:
+    build: .
+    container_name: ml-api
+    command: bash -c "pip install -r requirements.txt && uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=airflow
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - MLFLOW_TRACKING_URI=sqlite:////mlflow/mlflow.db
+    volumes:
+      - ./src:/app/src
+      - ./mlflow:/mlflow
+      - ./requirements.txt:/app/requirements.txt
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   # ----------------------------------------
   # Airflow (LocalExecutor)
@@ -114,18 +150,16 @@ services:
       - PYTHONPATH=/opt/airflow/dags:/opt/airflow/src
       - DATA_DIR=/opt/airflow/data/bronze
       - KAFKA_BROKER=redpanda:9092
+      - POSTGRES_HOST=postgres
+      - MLFLOW_TRACKING_URI=sqlite:////mlflow/mlflow.db
     ports:
       - "8080:8080"
     volumes:
       - ./dags:/opt/airflow/dags
-      - ./src:/opt/airflow/src # Mount src so Dags can import it
-      - ./requirements.txt:/requirements.txt # Mount reqs to install? 
-      # Note: The official image won't install them auto. We should extend the image OR install at runtime (slow).
-      # For Phase 1 speed, we will use PythonVirtualenvOperator or DockerOperator.
-      # OR simpler: just install libs on init? 
-      # Best practice: extend image. But for this: `pip install -r /requirements.txt` in entrypoint?
-      # We will add a wrapper command to install.
+      - ./src:/opt/airflow/src
+      - ./requirements.txt:/requirements.txt
       - ./data:/opt/airflow/data
+      - ./mlflow:/mlflow
     command: bash -c "pip install -r /requirements.txt && airflow webserver"
     healthcheck:
       test: [ "CMD", "curl", "--fail", "http://localhost:8080/health" ]
@@ -149,11 +183,14 @@ services:
       - PYTHONPATH=/opt/airflow/dags:/opt/airflow/src
       - DATA_DIR=/opt/airflow/data/bronze
       - KAFKA_BROKER=redpanda:9092
+      - POSTGRES_HOST=postgres
+      - MLFLOW_TRACKING_URI=sqlite:////mlflow/mlflow.db
     volumes:
       - ./dags:/opt/airflow/dags
       - ./src:/opt/airflow/src
       - ./requirements.txt:/requirements.txt
       - ./data:/opt/airflow/data
+      - ./mlflow:/mlflow
     command: bash -c "pip install -r /requirements.txt && airflow scheduler"
 
 volumes:

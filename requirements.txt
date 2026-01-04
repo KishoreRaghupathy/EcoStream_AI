@@ -12,3 +12,7 @@ pydantic==2.6.0
 openmeteo-requests==1.2.0
 requests-cache==1.1.1
 retry_requests==6.0
+
+xgboost==2.0.3
+mlflow==2.10.0
+scikit-learn==1.4.0
