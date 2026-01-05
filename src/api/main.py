@@ -21,6 +21,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
+from src.api.chat import router as chat_router
+app.include_router(chat_router)
+
 # Dependency
 def get_db():
     db = SessionLocal()
