@@ -111,6 +111,11 @@ def get_prediction(city: str = Query("London", description="City to get forecast
         logger.error(f"Error fetching predictions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.on_event("startup")
+async def startup():
+    from prometheus_fastapi_instrumentator import Instrumentator
+    Instrumentator().instrument(app).expose(app)
+
 @app.get("/model/metadata", response_model=List[ModelMetadata])
 def get_model_metadata(limit: int = 5, db: Session = Depends(get_db)):
     """
