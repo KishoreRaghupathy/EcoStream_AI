@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'ml-api'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['ml-api:8000']
+    metrics_path: '/metrics'
+
+  - job_name: 'airflow'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['airflow-webserver:8080']
+    metrics_path: '/metrics'

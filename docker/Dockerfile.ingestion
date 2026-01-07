@@ -1,0 +1,31 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Create a non-root user
+RUN useradd -m -u 1000 appuser
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source code
+COPY src/ ./src/
+
+# Set ownership
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Set python path
+ENV PYTHONPATH=/app
+
+# Default command
+CMD ["python", "-m", "src.ingestion.producer"]
