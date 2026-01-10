@@ -1,60 +1,146 @@
-# EcoStream AI
+# EcoStream AI 🌍🤖
+**Real-Time Hyper-Local Air Quality Forecasting & Analysis Platform**
 
-EcoStream AI is a real-time air quality prediction and analytics platform.
+![Status](https://img.shields.io/badge/Status-Complete-success)
+![Tech](https://img.shields.io/badge/Stack-Next.js%20%7C%20FastAPI%20%7C%20Redpanda%20%7C%20PostgreSQL-blue)
 
-## Phase 1: Data Ingestion & Pipeline
+**EcoStream AI** is an end-to-end data platform that streams, processes, forecasts, and explains air quality data. It combines event-driven engineering, machine learning forecasting, and Large Language Models (LLMs) into a unified interactive dashboard.
 
-### Prerequisites
-- Docker & Docker Compose
-- Python 3.10+ (for local development)
+---
 
-### Architecture
-- **Infratructure**: Docker Compose
-- **Event Streaming**: Redpanda (Kafka API)
-- **Database**: PostgreSQL (Silver/Gold layers)
-- **Storage**: Local Filesystem (Bronze Parquet)
-- **Orchestration**: Apache Airflow (LocalExecutor)
+## 🚀 Project Narrative
 
-### Setup Instructions
+### The Problem
+Air quality data is often delayed, fragmented, or hard to interpret. Traditional monitors give you a number (e.g., "AQI 150"), but they don't tell you **why** it's high, **what** it will be in 2 hours, or **correlation** with weather patterns in plain English.
 
-1.  **Initialize Infrastructure**
+### The Solution
+I built **EcoStream AI** to bridge the gap between heavy sensor data and human understanding.
+1.  **Ingestion Engine**: Consumes real-time sensor streams (Mock/API) into a Redpanda (Kafka) queue.
+2.  **Data Lakehouse**: Processes raw data into analytics-ready tables via Apache Airflow.
+3.  **Forecasting Brain**: An ML model predicts PM2.5 levels 24 hours ahead.
+4.  **Semantic Layer**: An LLM (RAG-enabled) answers questions like "Why is pollution spiking?" by querying the database.
+5.  **The Face**: A Next.js responsive web app for visualization.
+
+### Trade-offs & Architecture
+- **Why Redpanda?** Chosen for Kafka compatibility with lower resource overhead for single-node deployment.
+- **Why MapLibre?** To avoid API costs associated with Mapbox while maintaining WebGL performance.
+- **Why Local LLM?** Designed to be pluggable with Ollama or OpenAI, ensuring privacy and cost-control options.
+
+---
+
+## 🏗️ System Architecture
+
+```ascii
++-----------------+      +------------------+      +-------------------+
+|  Data Sources   | ---> |  Ingestion Svc   | ---> | Redpanda (Stream) |
+| (API / Sensors) |      | (Python/Docker)  |      |   (Topic: raw_aq) |
++-----------------+      +------------------+      +-------------------+
+                                                          |
+                                                          v
+                                                 +-------------------+
+                                                 |   Bronze Worker   |
+                                                 | (Parquet Storage) |
+                                                 +-------------------+
+                                                          |
+     +------------------+                        +-------------------+
+     |   Airflow DAGs   | ---------------------> |   Silver Layer    |
+     | (Orchestration)  |                        |   (PostgreSQL)    |
+     +------------------+                        +-------------------+
+                                                          |
+                                          +---------------+------------------+
+                                          |                                  |
+                                  +-------v-------+                  +-------v-------+
+                                  |   ML Service  |                  |   LLM Agent   |
+                                  | (Forecasting) |                  | (LangChain/SQL)|
+                                  +---------------+                  +---------------+
+                                          |                                  |
+                                          +---------------+------------------+
+                                                          |
+                                                  +-------v-------+
+                                                  |    FastAPI    |
+                                                  |  (Backend)    |
+                                                  +-------+-------+
+                                                          |
+                                                  +-------v-------+
+                                                  |    Next.js    |
+                                                  |   Frontend    |
+                                                  +---------------+
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Component | Technology | Reasoning |
+|-----------|------------|-----------|
+| **Frontend** | Next.js 14, TailwindCSS, shadcn/ui | React Server Components for performance; Tailwind for rapid styling. |
+| **Maps** | MapLibre GL JS, React-Map-GL | Open-source alternative to Mapbox; high-performance WebGL rendering. |
+| **Charts** | Recharts | Composable React charting library based on D3. |
+| **State** | TanStack Query | Server state management, caching, and optimistic UI updates. |
+| **Backend** | FastAPI (Python) | High-performance async API; native support for Pydantic models. |
+| **Orchestration** | Apache Airflow | Managing DAGs for ETL and Model training pipelines. |
+| **Streaming** | Redpanda | Lightweight, binary-compatible Kafka replacement. |
+| **Database** | PostgreSQL | Robust relational storage for structured analytics data. |
+
+---
+
+## 📸 Features
+
+### 1. Interactive Heatmap
+Visualize PM2.5 concentrations across the city with dynamic zooming and interpolation.
+
+### 2. Analytics Dashboard
+Compare historical trends with model-generated forecasts. Hover to see weather correlations (Temp, Humidity).
+
+### 3. AI Analyst (Chat)
+Don't just look at charts—ask questions.
+> *"Why is the AQI high in Downtown right now?"*
+The system translates this into a SQL query, analyzes the data, and generating a text summary.
+
+---
+
+## 🏃‍♂️ How to Run
+
+### Option A: Full System (Docker)
+1.  **Backend & Infra**:
     ```bash
     docker-compose up -d --build
     ```
-    This will start:
-    - Redpanda (Ports 8081, 8082, 9092, 9644)
-    - PostgreSQL (Port 5432)
-    - Airflow Webserver (Port 8080) & Scheduler
-    - Bronze Worker (Python service for Kafka -> Parquet)
+2.  **Frontend**:
+    ```bash
+    cd frontend
+    npm install
+    npm run dev
+    ```
+3.  Open `http://localhost:3000`.
 
-2.  **Access Airflow**
-    - URL: `http://localhost:8080`
-    - User: `admin`
-    - Pass: `admin`
+### Option B: Frontend Demo Mode (Stand-alone)
+EcoStream AI includes a deterministic **Demo Mode** for portfolio presentations without needing the full backend infrastructure.
 
-3.  **Trigger Pipeline**
-    - Enable the `ecostream_pipeline` DAG using the toggle switch.
-    - Manually trigger the DAG to test immediate execution.
+1.  Navigate to `frontend/`:
+    ```bash
+    cd frontend
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Run the development server:
+    ```bash
+    npm run dev
+    ```
+4.  Open `http://localhost:3000`.
+    *Note: The app detects missing backend connection and automatically switches to Demo Mode (simulated data).*
 
-4.  **Verify Data**
-    - **Bronze**: Check `data/bronze` folder for Parquet files.
-    - **Silver**: Connect to Postgres (`localhost:5432`, user `airflow`, pass `airflow`, db `airflow` or `ecostream_db` if configured) and query:
-      ```sql
-      SELECT * FROM silver.fact_air_quality LIMIT 10;
-      SELECT * FROM silver.fact_weather LIMIT 10;
-      ```
+---
 
-### Environment Variables
-You can create a `.env` file in the root if you want to use real API keys:
-```
-OPENWEATHER_API_KEY=your_key_here
-```
-(If not provided, the system generates synthetic mock data for demonstration).
+## 🧪 Development Workflow
 
-### Project Structure
-- `dags/`: Airflow DAGs
-- `src/ingestion`: API Fetchers & Kafka Producer
-- `src/processing`: Bronze Writer & Silver Cleaner
-- `src/common`: Shared utilities
-- `sql/`: Database initialization
-- `data/`: Local storage for Bronze layer
+- **Linting**: `npm run lint`
+- **Type Check**: `npm run type-check` (if configured) or `tsc --noEmit`
+- **Formatting**: Uses Prettier/ESLint.
+
+---
+
+## 📬 Contact
+Built by [Your Name]. Ready for Machine Learning Engineering & Platform roles.
